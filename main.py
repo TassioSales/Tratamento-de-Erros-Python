@@ -1,5 +1,5 @@
-from exceptions import SaldoInsuficienteError
-
+from exceptions import SaldoInsuficienteError, OperacaoFinanceiraError
+from leitor import LeitorDeArquivo
 class Cliente:
     def __init__(self, nome, cpf, profissao):
         self.nome = nome
@@ -15,8 +15,8 @@ class ContaCorrente:
         self.__saldo = 100
         self.__agencia =0
         self.__numero = 0
-
-
+        self.saques_nao_permitidos = 0 
+        self.transferencias_nao_permitidas = 0 
         self.cliente = cliente
         self.__set_agencia(agencia)
         self.__set_numero(numero)
@@ -62,14 +62,19 @@ class ContaCorrente:
     def transferir(self, valor, favorecido):
         if valor < 0:
             raise ValueError("O valor a ser depositado não pode ser menor que zero")
-        
-        self.sacar(valor)
+        try:
+            self.sacar(valor)
+        except SaldoInsuficienteError as E:
+            self.transferencias_nao_permitidas += 1
+            E.args = ()
+            raise OperacaoFinanceiraError("Operação não finalizada") from E
         favorecido.depositar(valor)
     
     def sacar(self, valor):
         if valor<0:
             raise ValueError("O valor a ser sacado não pode ser menor que zero")
         if(self.saldo < valor):
+            self.saques_nao_permitidos+=1
             raise SaldoInsuficienteError("",saldo=self.saldo, valor=valor)
         self.saldo -= valor
 
@@ -98,9 +103,15 @@ def main():
 #if __name__ == "__main__":
 #    main()
 
-conta_corrente1 = ContaCorrente(None, 400, 1234567)
-conta_corrente2 = ContaCorrente(None, 401, 1234568)
+# conta_corrente1 = ContaCorrente(None, 400, 1234567)
+# conta_corrente2 = ContaCorrente(None, 401, 1234568)
+# try:
+#     conta_corrente1.sacar(1000)
+#     print("Conta Corrente1 Saldo: ",conta_corrente1.saldo)
+#     print("Conta Corrente2 Saldo: ",conta_corrente2 .saldo)
+# except OperacaoFinanceiraError as E:
+#     breakpoint()
+#     pass
 
-conta_corrente1.transferir(110, conta_corrente2)
-print("Conta Corrente1 Saldo: ",conta_corrente1.saldo)
-print("Conta Corrente2 Saldo: ",conta_corrente2 .saldo)
+with LeitorDeArquivo("arquivo.txt") as leitor:
+    leitor.ler_proxima_linha()
